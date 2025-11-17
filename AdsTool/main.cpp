@@ -131,9 +131,16 @@ COMMANDS:
 		Test if file or directory exists
 		$ adstool 5.24.37.144.1.1 file find --maxdepth=0 'C:/TwinCAT'
 
-	license < platformid | systemid | volumeno >
+	license < onlineinfo | platformid | systemid | volumeno >
 		Read license information from device.
 	examples:
+		Show active licenses on device
+		$ adstool 5.24.37.144.1.1 license onlineinfo
+		OrderNo.;Instances;Status;License
+		TC1000;CPU;Valid;TC3 ADS
+		TC1100;CPU;Valid;TC3 IO
+		TC1200;CPU;Valid;TC3 PLC
+
 		Read platformid from device
 		$ adstool 5.24.37.144.1.1 license platformid
 		50

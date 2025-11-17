@@ -91,6 +91,10 @@ file write [--append] <path>
 Read data from stdin write to the file at <path>. File content will be
 overwritten unless '--append' is specified.
 
+license onlineinfo
+""""""""""""""""""
+Show active licenses on device.
+
 license platformid
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Read platform id from device.
@@ -285,6 +289,16 @@ Copy local file to remote:
 
 license
 """""""
+Show active licenses on device
+
+.. code-block:: shell
+
+	$ adstool 5.24.37.144.1.1 license onlineinfo
+	OrderNo.;Instances;Status;License
+	TC1000;CPU;Valid;TC3 ADS
+	TC1100;CPU;Valid;TC3 IO
+	TC1200;CPU;Valid;TC3 PLC
+
 Read platformid from device
 
 .. code-block:: shell
