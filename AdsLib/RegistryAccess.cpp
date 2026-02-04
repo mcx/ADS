@@ -111,11 +111,25 @@ static void VerifyDataLen(const uint32_t type, const size_t dataLen,
 	}
 }
 
+static auto Unescape(const char *&it, size_t &lineNumber)
+{
+	if ('\\' == *it) {
+		++it;
+		if (('\\' != *it) && ('\"' != *it)) {
+			PARSING_EXCEPTION(
+				"found escape character in front of not escapable char '"
+				<< *it << "'");
+		}
+	}
+	return it;
+}
+
 static void ParseStringData(RegistryEntry &value, const char *&it,
 			    std::istream & /*input*/, size_t &lineNumber)
 {
 	// REG_SZ data should end with a closing quote and null terminator
 	while ('\0' != it[0] && '\0' != it[1]) {
+		Unescape(it, lineNumber);
 		value.PushData(*it);
 		++it;
 	}
@@ -403,14 +417,7 @@ void RegistryEntry::ParseStringValue(const char *&it, size_t &lineNumber)
 			return;
 		}
 		// String values are stored unescaped
-		if ('\\' == *it) {
-			++it;
-			if (('\\' != *it) && ('\"' != *it)) {
-				PARSING_EXCEPTION(
-					"found escape character in front of not escapable char '"
-					<< *it << "'");
-			}
-		}
+		Unescape(it, lineNumber);
 		buffer.push_back(*it);
 	}
 	PARSING_EXCEPTION("missing closing quotation mark for value");
