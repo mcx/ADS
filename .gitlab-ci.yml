@@ -63,7 +63,7 @@ build-only:
   parallel:
     matrix:
       - FLAVOR: 'alpine'
-        IMAGE: "${DOCKER_PROXY}alpine:3.21.0"
+        IMAGE: "${DOCKER_PROXY}alpine:3.23.3"
       - FLAVOR: 'arch'
         CXX:
         - clang++
