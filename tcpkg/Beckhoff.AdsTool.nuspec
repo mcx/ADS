@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Beckhoff.AdsTool</id>
+    <version>$version$</version>
+    <title>AdsTool</title>
+    <authors>Beckhoff Automation</authors>
+    <projectUrl>https://www.beckhoff.com/en-us/products/automation/twincat/</projectUrl>
+    <copyright>(c) Beckhoff Automation GmbH &amp; Co. KG</copyright>
+    <license type="file">tools\LICENSE.txt</license>
+
+    <tags>ads</tags>
+
+    <description>
+      Command line tool to access TwinCAT systems via ADS
+      ADS offers many possibilities to access TwinCAT systems. This tool
+      is intended to make use of that from the command line. With the 'raw'
+      command it should be possible to issue any ADS read/write access from your
+      command line. Additionally some comfort functions are implemented such as:
+        - access PLC variables
+        - access files
+        - access TwinCAT state
+    </description>
+
+    <dependencies/>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+    <file src="../build/adstool.exe" target="tools/pkg/%PROGRAMFILES%/Beckhoff/AdsTool" />
+    <file src="../build/tcadstool.exe" target="tools/pkg/%PROGRAMFILES%/Beckhoff/AdsTool" />
+  </files>
+</package>

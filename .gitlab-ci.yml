@@ -151,6 +151,21 @@ build-and-test-in-vm:
     - rackctl-emulate add test-device 200
     - test_stage/test_stage.sh --config-dir=.test-stage rackctl --install="$(realpath ./*.iso)" test-device & wait $!
 
+build-tcpkg:
+  stage: build
+  image: ${REGISTRY_HOST}/beckhoff/btpg:v13.0.0
+  needs:
+    - build-win10
+  script:
+    - btpg build --write-gitlab-dotenv=tcpkg.env
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+      - tcpkg-release/*.nupkg
+    reports:
+      dotenv: tcpkg.env
+
 test-pack:
   stage: build
   image: ${CI_REGISTRY}/beckhoff/test_stage/test-pack:v13.7
