@@ -9,7 +9,7 @@
     <copyright>(c) Beckhoff Automation GmbH &amp; Co. KG</copyright>
     <license type="file">tools\LICENSE.txt</license>
 
-    <tags>ads</tags>
+    <tags>NoVisualStudioRestart,UMCompatible,ads</tags>
 
     <description>
       Command line tool to access TwinCAT systems via ADS
