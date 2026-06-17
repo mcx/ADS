@@ -187,7 +187,7 @@ test-pack:
     reports:
       dotenv: test-pack.env
 
-test-registry:
+test-downstream:
   stage: test
   needs: [ 'test-pack' ]
   parallel:
