@@ -203,6 +203,9 @@ test-downstream:
         BHF_CI_PIPELINE_REPOS: '${CI_PROJECT_NAME}/${CI_PIPELINE_ID}'
       - DOWNSTREAM: test-windows
         BHF_CI_SKIP_TEST_HARDWARE: 'y'
+      - DOWNSTREAM: test-windows
+        BHF_CI_SKIP_TEST_HARDWARE: 'y'
+        BHF_CI_TCPKG_XAR_MODE: 'UM'
   trigger:
     project: beckhoff/${DOWNSTREAM}
     strategy: depend
