@@ -189,7 +189,9 @@ test-pack:
 
 test-downstream:
   stage: test
-  needs: [ 'test-pack' ]
+  needs:
+    - 'test-pack'
+    - 'build-tcpkg'
   parallel:
     matrix:
       - DOWNSTREAM: build-tcrtos
@@ -198,6 +200,7 @@ test-downstream:
         BHF_CI_SKIP_TEST_HARDWARE: 'y'
       - DOWNSTREAM: test-tcos
         BHF_CI_SKIP_TEST_HARDWARE: 'y'
+        BHF_CI_PIPELINE_REPOS: '${CI_PROJECT_NAME}/${CI_PIPELINE_ID}'
       - DOWNSTREAM: test-windows
         BHF_CI_SKIP_TEST_HARDWARE: 'y'
   trigger:

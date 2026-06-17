@@ -1,0 +1,10 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright (C) Beckhoff Automation GmbH & Co. KG
+
+set -e
+set -u
+
+readonly test_device="${1?Missing <test_device>}"
+
+ssh Administrator@"${test_device}" "tcadstool 127.0.0.1.1.1 state"
