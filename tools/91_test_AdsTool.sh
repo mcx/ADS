@@ -30,6 +30,18 @@ check_file() {
 	printf '%s\n' "${_test_string}" | check file write --append '%TC_INSTALLPATH%\test.txt'
 	check file read '%TC_INSTALLPATH%\test.txt' > "${tmpfile}"
 	printf '%s\n' "${_test_string}" "${_test_string}" | diff - "${tmpfile}"
+	# Rename the file and verify the content moved along with it
+	check file rename '%TC_INSTALLPATH%\test.txt' '%TC_INSTALLPATH%\test2.txt'
+	check file read '%TC_INSTALLPATH%\test2.txt' > "${tmpfile}"
+	printf '%s\n' "${_test_string}" "${_test_string}" | diff - "${tmpfile}"
+	# Overwrite an existing destination and rename back to the original name
+	printf 'overwrite me\n' | check file write '%TC_INSTALLPATH%\test.txt'
+	# Without --overwrite the rename must fail when the destination exists
+	if check file rename '%TC_INSTALLPATH%\test2.txt' '%TC_INSTALLPATH%\test.txt'; then
+		printf 'check_file() rename succeeded without --overwrite!\n' >&2
+		return 1
+	fi
+	check file rename --overwrite '%TC_INSTALLPATH%\test2.txt' '%TC_INSTALLPATH%\test.txt'
 	check file delete '%TC_INSTALLPATH%\test.txt'
 	local _exit_code=0
 	check file read '%TC_INSTALLPATH%\test.txt' || _exit_code=$?

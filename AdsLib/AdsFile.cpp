@@ -6,6 +6,7 @@
 #include "AdsFile.h"
 #include <iostream>
 #include <list>
+#include <vector>
 
 #pragma pack(push, 1)
 /**
@@ -130,6 +131,27 @@ void AdsFile::Read(const size_t size, void *data, uint32_t &bytesRead) const
 	auto error = m_Route.ReadWriteReqEx2(SYSTEMSERVICE_FREAD, *m_Handle,
 					     size, data, 0, nullptr,
 					     &bytesRead);
+
+	if (error) {
+		throw AdsException(error);
+	}
+}
+
+void AdsFile::Rename(const AdsDevice &route, const std::string &source,
+		     const std::string &destination, const uint32_t flags)
+{
+	// The write payload is the source and destination path, each
+	// terminated by a null byte: <source>'\0'<destination>'\0'
+	std::vector<char> buffer;
+	buffer.reserve(source.length() + destination.length() + 2);
+	buffer.insert(buffer.end(), source.begin(), source.end());
+	buffer.push_back('\0');
+	buffer.insert(buffer.end(), destination.begin(), destination.end());
+	buffer.push_back('\0');
+
+	auto error = route.ReadWriteReqEx2(SYSTEMSERVICE_FRENAME, flags, 0,
+					   nullptr, buffer.size(),
+					   buffer.data(), nullptr);
 
 	if (error) {
 		throw AdsException(error);

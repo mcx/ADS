@@ -86,6 +86,11 @@ file read <path>
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Dump content of the file from <path> to stdout
 
+file rename [--overwrite] <source> <destination>
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Rename or move a file from <source> to <destination>. Pass '--overwrite' to
+replace an already existing destination file.
+
 file write [--append] <path>
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Read data from stdin write to the file at <path>. File content will be
@@ -284,6 +289,18 @@ Delete a file over ADS and check if it still exists
 	$ adstool 5.24.37.144.1.1 file read 'C:\Temp\hello world.txt'
 	$ echo \$?
 	1804
+
+Rename or move a file over ADS:
+
+.. code-block:: shell
+
+	$ adstool 5.24.37.144.1.1 file rename 'C:\Temp\old.txt' 'C:\Temp\new.txt'
+
+Overwrite an existing destination file:
+
+.. code-block:: shell
+
+	$ adstool 5.24.37.144.1.1 file rename --overwrite 'C:\Temp\a.txt' 'C:\Temp\b.txt'
 
 Write text directly into a file:
 

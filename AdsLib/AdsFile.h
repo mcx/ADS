@@ -37,6 +37,8 @@ struct AdsFile {
 			   uint32_t flags);
 	static int Find(const AdsDevice &route, const std::string &path,
 			const size_t maxdepth, std::ostream &os);
+	static void Rename(const AdsDevice &route, const std::string &source,
+			   const std::string &destination, uint32_t flags);
 
     private:
 	const AdsDevice &m_Route;

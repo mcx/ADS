@@ -111,6 +111,16 @@ COMMANDS:
 		$ echo \$?
 		1804
 
+	file rename [--overwrite] <source> <destination>
+		Rename or move a file from <source> to <destination>. Pass --overwrite to
+		replace an already existing destination file.
+	examples:
+		Rename a file over ADS:
+		$ adstool 5.24.37.144.1.1 file rename 'C:\Temp\old.txt' 'C:\Temp\new.txt'
+
+		Overwrite an existing destination file:
+		$ adstool 5.24.37.144.1.1 file rename --overwrite 'C:\Temp\a.txt' 'C:\Temp\b.txt'
+
 	file write [--append] <path>
 		Read data from stdin write to the file at <path>.
 	examples:
@@ -447,6 +457,24 @@ int RunFile(const AmsNetId netid, const uint16_t port, const std::string &gw,
 
 		const auto path = args.Pop<std::string>("path is missing");
 		return AdsFile::Find(device, path, maxdepth, std::cout);
+	} else if (!command.compare("rename")) {
+		bhf::ParameterList params = {
+			{ "--overwrite", true },
+		};
+		args.Parse(params);
+		const auto overwrite = params.Get<bool>("--overwrite");
+		uint32_t flags = (bhf::ads::SYSTEMSERVICE_OPENGENERIC
+				  << bhf::ads::FOPEN::SHIFT_OPENPATH) |
+				 bhf::ads::FOPEN::ENABLE_DIR;
+		if (overwrite) {
+			flags |= bhf::ads::FOPEN::OVERWRITE;
+		}
+
+		const auto sourcePath =
+			args.Pop<std::string>("source path is missing");
+		const auto destinationPath =
+			args.Pop<std::string>("destination path is missing");
+		AdsFile::Rename(device, sourcePath, destinationPath, flags);
 	} else {
 		LOG_ERROR(__FUNCTION__ << "(): Unknown file command '"
 				       << command << "'\n");
