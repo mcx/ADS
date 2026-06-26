@@ -15,6 +15,7 @@
 #include "RouterAccess.h"
 #include "RTimeAccess.h"
 #include "SymbolAccess.h"
+#include "SysServAccess.h"
 #include "bhf/ParameterList.h"
 #include "bhf/StringToInteger.h"
 #include "bhf/WindowsQuirks.h"
@@ -272,6 +273,16 @@ COMMANDS:
 
 		Wait about one minute for TwinCAT to report either RUN or CONFIG mode:
 		$ adstool 5.24.37.144.1.1 --retry=60 state --compare 5 15
+
+	sysserv reconfig [--timeout=<seconds>]
+		Trigger TwinCAT reconfig and wait until it finished.
+		Waits up to --timeout seconds (default 30).
+	examples:
+		Trigger a reconfiguration and wait up to 30 seconds for completion:
+		$ adstool 5.24.37.144.1.1 sysserv reconfig
+
+		Wait up to two minutes for the reconfiguration to complete:
+		$ adstool 5.24.37.144.1.1 sysserv reconfig --timeout=120
 
 	var [--type=<DATATYPE>] <variable name> [<value>]
 		Reads/Write from/to a given PLC variable.
@@ -553,7 +564,26 @@ int RunRTime(const AmsNetId netid, const uint16_t port, const std::string &gw,
 		return -1;
 	}
 }
+int RunSysServ(const AmsNetId netid, const uint16_t port, const std::string &gw,
+	       bhf::Commandline &args)
+{
+	const auto command =
+		args.Pop<std::string>("sysserv command is missing (reconfig)");
+	auto device = bhf::ads::SysServAccess{ gw, netid, port };
 
+	if (!command.compare("reconfig")) {
+		bhf::ParameterList params = {
+			{ "--timeout" },
+		};
+		args.Parse(params);
+		const auto timeout = params.Get<uint32_t>("--timeout", 30);
+		return device.Reconfig(timeout);
+	}
+
+	LOG_ERROR(__FUNCTION__ << "(): Unknown sysserv command '" << command
+			       << "'\n");
+	return -1;
+}
 int RunRaw(const AmsNetId netid, const uint16_t port, const std::string &gw,
 	   bhf::Commandline &args)
 {
@@ -924,7 +954,8 @@ int ParseCommand(int argc, const char *argv[])
 		{ "license", RunLicense }, { "pciscan", RunPCIScan },
 		{ "plc", RunPLC },	   { "raw", RunRaw },
 		{ "rtime", RunRTime },	   { "startprocess", RunStartProcess },
-		{ "state", RunState },	   { "var", RunVar },
+		{ "state", RunState },	   { "sysserv", RunSysServ },
+		{ "var", RunVar },
 	};
 	const auto it = commands.find(cmd);
 	if (it != commands.end()) {

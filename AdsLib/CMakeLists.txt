@@ -13,6 +13,7 @@ set(LIB_SOURCES
         RouterAccess.cpp
         Sockets.cpp
         SymbolAccess.cpp
+        SysServAccess.cpp
 )
 set(LIB_HEADERS
         AdsDef.h
@@ -41,6 +42,7 @@ set(LIB_HEADERS
         Semaphore.h
         Sockets.h
         SymbolAccess.h
+        SysServAccess.h
         wrap_socket.h
         wrap_registry.h
         wrap_endian.h

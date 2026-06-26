@@ -27,6 +27,7 @@ common_files = files([
   'AdsLib/RouterAccess.cpp',
   'AdsLib/Sockets.cpp',
   'AdsLib/SymbolAccess.cpp',
+  'AdsLib/SysServAccess.cpp',
   'AdsLib/bhf/ParameterList.cpp',
 ])
 

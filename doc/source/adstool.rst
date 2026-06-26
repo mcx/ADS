@@ -180,6 +180,16 @@ ADS states are documented here:
 
 https://infosys.beckhoff.com/index.php?content=../content/1031/tcadswcf/html/tcadswcf.tcadsservice.enumerations.adsstate.html
 
+sysserv reconfig [--timeout=<seconds>]
+"""""""""""""""""""""""""""""""""""""""""
+Trigger a reconfiguration of the target and wait until it finished. Triggering a
+reconfiguration was already possible before by setting the ADS state to RECONFIG
+(e.g. 'state 16'), but it was hard to tell when the reconfiguration had actually
+completed. This command triggers the reconfiguration and then waits until the
+target has restarted into config mode, so a successful return reliably indicates
+completion. By default it waits up to 30 seconds, use --timeout to change that
+limit.
+
 var [--type=<DATATYPE>] <variable name> [<value>]
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 This command gives low level access to:
@@ -446,6 +456,20 @@ Set TwinCAT to CONFIG mode:
 .. code-block:: shell
 
 	$ adstool 5.24.37.144.1.1 state 16
+
+sysserv
+"""""""
+Trigger a reconfiguration and wait up to 30 seconds for its completion:
+
+.. code-block:: shell
+
+	$ adstool 5.24.37.144.1.1 sysserv reconfig
+
+Wait up to two minutes for the reconfiguration to complete:
+
+.. code-block:: shell
+
+	$ adstool 5.24.37.144.1.1 sysserv reconfig --timeout=120
 
 var
 """

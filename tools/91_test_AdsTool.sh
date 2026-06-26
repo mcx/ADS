@@ -302,6 +302,21 @@ check_state() {
 	${ads_tool} "${netid}:851" "--gw=${remote}" "--retry=${BHF_CI_ADS_RETRY_LIMIT}" state --compare 5
 }
 
+check_sysserv() {
+	# reconfig waits until the target restarted into CONFIG, so a direct
+	# compare without retry must already report CONFIG.
+	check sysserv reconfig
+	check state --compare 15
+
+	# Reconfig is repeatable, so trigger it again and verify CONFIG again.
+	check sysserv reconfig
+	check state --compare 15
+
+	# Now, we can reset the target and verify that it is back in RUN.
+	check state "${ADSSTATE_RESET}" || true
+	check "--retry=${BHF_CI_ADS_RETRY_LIMIT}" state --compare 5
+}
+
 check_var() {
 	local _response
 
@@ -395,5 +410,6 @@ check_plc
 check_raw
 check_rtime
 check_startprocess
+check_sysserv
 check_var
 check_version
