@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: compile library
         run: cmake -S . -B build && cmake --build build
+      - name: compile shared library
+        run: cmake -S . -B build-shared -DBUILD_SHARED_LIBS=ON && cmake --build build-shared
       - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-cmake
