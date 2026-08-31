@@ -29,6 +29,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_definitions(_GNU_SOURCE)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
+    # GCC and Clang already default to UTF-8, MSVC defaults to the systems ANSI
+    # code page for both source and execution character set. Meson passes
+    # /utf-8 on its own, CMake has no equivalent so we have to set it here.
+    add_compile_options(/utf-8)
 endif ()
 add_compile_definitions(CONFIG_DEFAULT_LOGLEVEL=1)
 
