@@ -121,7 +121,7 @@ endif ()
 list(APPEND LIST_TARGETS_TO_INSTALL AdsLib)
 
 # Create the TwinCat variant.
-if (TcAdsDll_FOUND AND NOT ONLY_STANDALONE)
+if (TcAdsDll_FOUND AND NOT STANDALONE_ONLY)
     add_library(TcAdsLib)
     target_sources(TcAdsLib PRIVATE
             ${TWINCAT_SOURCES}

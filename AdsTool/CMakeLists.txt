@@ -11,7 +11,7 @@ set_target_properties(AdsTool PROPERTIES
 list(APPEND LIST_TARGETS_TO_INSTALL AdsTool)
 
 # Create the TwinCat variant
-if (TcAdsDll_FOUND AND NOT ONLY_STANDALONE)
+if (TcAdsDll_FOUND AND NOT STANDALONE_ONLY)
     add_executable(TcAdsTool ${SOURCES})
     target_link_libraries(TcAdsTool PRIVATE TcAdsLib)
     set_target_properties(TcAdsTool PROPERTIES
