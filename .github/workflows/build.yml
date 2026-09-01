@@ -32,6 +32,7 @@ jobs:
           name: ubuntu-cmake
           path: |
             build/
+            build-shared/
   collect-and-release:
     needs: [build-ubuntu-meson, build-ubuntu-cmake]
     runs-on: ubuntu-latest
@@ -51,7 +52,8 @@ jobs:
     - name: 'Compress files for the linux-x64 release artifact'
       shell: bash
       run: |
-        zip --junk-paths ./linux-x64.zip ./build-ubuntu-cmake/**/*.so ./build-ubuntu-cmake/**/*.so.* ./build-ubuntu-meson/build/adstool
+        shopt -s globstar
+        zip --junk-paths ./linux-x64.zip ./build-ubuntu-cmake/**/*.so* ./build-ubuntu-meson/build/adstool
 
     - name: 'Obtain the current version number from the debian changelog. We need it to create the release.'
       shell: bash
