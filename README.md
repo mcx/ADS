@@ -109,5 +109,30 @@ adstool    |     x      |
 tcadstool  |            | x 
 example    |     x      | 
 tcexample  |            | x 
+
+Using AdsLib from an existing CMake project
+===========================================
+We build, test and ship this library with meson. All the instructions
+above use it, and it is the build system our CI covers across Linux,
+TC/BSD and the cross compiled targets.
+
+If you maintain a CMake project and want to use AdsLib, our first
+suggestion is to move that project to meson.
+
+If that is not an option, the repository does ship a CMakeLists.txt for
+exactly this case. It is a community effort, not a supported second
+build system: it covers fewer platforms, our CI only exercises it on
+Linux and it may lag behind the meson build. Most of its changes come
+from outside contributors.
+
+```ps1
+# On Windows with TwinCAT installed, from the root of the repository
+mkdir build && cd build
+# TcAdsDll_ROOT is only needed if the ADS API is installed somewhere
+# other than the default location
+cmake -DTcAdsDll_ROOT="$env:TWINCAT_ADS_API_ROOT" ..
+cmake --build . --config Release --parallel
+```
+
 ---
 ADS/AMS Specification: https://infosys.beckhoff.com/content/1033/tc3_ads_intro/index.html
