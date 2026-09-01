@@ -84,8 +84,14 @@ endif ()
 
 
 include(FindPackageHandleStandardArgs)
+# On Windows the imported target needs the import library as well, without it
+# the package would be reported as found and fail to link later on.
+set(_TcAdsDll_REQUIRED_VARS TcAdsDll_INCLUDE_DIR TcAdsDll_LIBRARY)
+if (WIN32)
+    list(APPEND _TcAdsDll_REQUIRED_VARS TcAdsDll_IMPLIB)
+endif ()
 find_package_handle_standard_args(TcAdsDll
-        REQUIRED_VARS TcAdsDll_INCLUDE_DIR TcAdsDll_LIBRARY
+        REQUIRED_VARS ${_TcAdsDll_REQUIRED_VARS}
         VERSION_VAR TcAdsDll_VERSION
 )
 
