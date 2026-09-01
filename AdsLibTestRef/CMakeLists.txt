@@ -2,6 +2,10 @@
 if (NOT TcAdsDll_FOUND)
     return()
 endif ()
+# main.cpp includes Windows.h unless it is built for FreeBSD
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    return()
+endif ()
 
 set(SOURCES
         main.cpp
