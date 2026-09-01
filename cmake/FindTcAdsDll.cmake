@@ -34,7 +34,7 @@ find_path(TcAdsDll_INCLUDE_DIR
         PATH_SUFFIXES "Include" "include"
 )
 # Find all related files base on the include files location. This is done
-# assuming that the files are ordered as install by TwinCat. If they are
+# assuming that the files are ordered as install by TwinCAT. If they are
 # in some other configuration this will not work.
 if (WIN32)
     cmake_path(GET TcAdsDll_INCLUDE_DIR PARENT_PATH TcAdsDll_ROOT_DIR)
