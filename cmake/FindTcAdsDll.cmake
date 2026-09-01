@@ -22,7 +22,10 @@ endif ()
 
 if (WIN32)
     # Typical install locations on Windows
-    set(_TcAdsDll_PATH "$ENV{SystemDrive}/TwinCAT/AdsApi/TcAdsDll")
+    list(APPEND _TcAdsDll_PATH
+            "$ENV{SystemDrive}/TwinCAT/AdsApi/TcAdsDll" # TwinCAT 3.1.4024 and older
+            "$ENV{ProgramFiles\(x86\)}/Beckhoff/TwinCAT/AdsApi/TcAdsDll" # TwinCAT 3.1.4026 and newer
+    )
 else ()
     # TODO: Linux not tested. Set additional known default locations to search.
     set(_TcAdsDll_PATH)
@@ -30,7 +33,7 @@ endif ()
 # Find the include headers
 find_path(TcAdsDll_INCLUDE_DIR
         NAMES TcAdsApi.h TcAdsDef.h
-        PATHS "${_TcAdsDll_PATH}"
+        PATHS ${_TcAdsDll_PATH}
         PATH_SUFFIXES "Include" "include"
 )
 # Find all related files base on the include files location. This is done
@@ -42,23 +45,34 @@ if (WIN32)
         message(STATUS "Looking for TcAdsDll in ROOT ${TcAdsDll_ROOT_DIR}")
     endif ()
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(TcAdsDll_IMPLIB_DIR "${TcAdsDll_ROOT_DIR}/x64/lib")
-        set(TcAdsDll_DLL_DIR "${TcAdsDll_ROOT_DIR}/x64")
+        list(APPEND TcAdsDll_IMPLIB_DIR
+                "${TcAdsDll_ROOT_DIR}/x64/lib" # TwinCAT 3.1.4024 and older
+                "${TcAdsDll_ROOT_DIR}/Lib/x64" # TwinCAT 3.1.4026 and newer
+        )
+        list(APPEND TcAdsDll_DLL_DIR
+                "${TcAdsDll_ROOT_DIR}/x64"
+                "${TcAdsDll_ROOT_DIR}/../../Common64"
+        )
     elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(TcAdsDll_IMPLIB_DIR "${TcAdsDll_ROOT_DIR}/Lib")
-        set(TcAdsDll_DLL_DIR "${TcAdsDll_ROOT_DIR}")
+        list(APPEND TcAdsDll_IMPLIB_DIR
+                "${TcAdsDll_ROOT_DIR}/Lib"
+        )
+        list(APPEND TcAdsDll_DLL_DIR
+                "${TcAdsDll_ROOT_DIR}"
+                "${TcAdsDll_ROOT_DIR}/../../Common32"
+        )
     endif ()
     # Use NO_DEFAULT_PATH so that we only look in the provided location. If not set
     # the find_library will find the 32 bit version first regardless of the config
     # which leads to errors.
     find_library(TcAdsDll_IMPLIB
             NAMES TcAdsDll
-            PATHS "${TcAdsDll_IMPLIB_DIR}"
+            PATHS ${TcAdsDll_IMPLIB_DIR}
             NO_DEFAULT_PATH
     )
     find_file(TcAdsDll_LIBRARY
             NAMES TcAdsDll.dll
-            PATHS "${TcAdsDll_DLL_DIR}"
+            PATHS ${TcAdsDll_DLL_DIR}
             NO_DEFAULT_PATH
     )
 else ()
