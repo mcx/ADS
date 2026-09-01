@@ -1,32 +1,36 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2020 - 2022 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
  */
 
 #pragma once
 
-#include <stdexcept>
-#include <string>
+#include <cstdio>
+#include <exception>
 
 struct AdsException : std::exception {
-	AdsException(const long adsErrorCode)
-		: errorCode(adsErrorCode)
-		, m_Message("Ads operation failed with error code " +
-			    std::to_string(adsErrorCode) + ".")
+	AdsException(const long adsErrorCode) noexcept : errorCode(adsErrorCode)
 	{
+		static constexpr char msg[] =
+			"Ads operation failed with error code ";
+		static_assert(sizeof(m_Message) >= sizeof(msg) + 20 + 1,
+			      "Message too long");
+		std::snprintf(m_Message, sizeof(m_Message), "%s%ld.", msg,
+			      adsErrorCode);
 	}
 
-	virtual ~AdsException() throw()
+	const char *what() const throw() override
 	{
-	}
-
-	virtual const char *what() const throw()
-	{
-		return m_Message.c_str();
+		return m_Message;
 	}
 
 	const long errorCode;
 
-    protected:
-	const std::string m_Message;
+    private:
+	/** 37 character is our message prefix
+	    20 LONG_MIN with sign
+	     2 "." at the end of the message and terminating NUL
+	     5 bytes left for padding
+	*/
+	char m_Message[64];
 };
