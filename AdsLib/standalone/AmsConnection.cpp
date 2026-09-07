@@ -301,7 +301,8 @@ bool AmsConnection::ReceiveNotification(const AoEHeader &header)
 
 	auto &ring = dispatcher->ring;
 	auto bytesLeft = header.length();
-	if (bytesLeft + sizeof(bytesLeft) > ring.BytesFree()) {
+	const size_t bytesNeeded = sizeof(bytesLeft) + bytesLeft;
+	if ((bytesNeeded < bytesLeft) || (bytesNeeded > ring.BytesFree())) {
 		ReceiveJunk(bytesLeft);
 		LOG_WARN("port " << std::dec << header.targetPort()
 				 << " receive buffer was full");
