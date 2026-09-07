@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2022 - 2023 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
    Author: Patrick Bruenn <p.bruenn@beckhoff.com>
  */
 
@@ -35,7 +35,8 @@ std::pair<std::string, SymbolEntry> SymbolEntry::Parse(const uint8_t *data,
 	entry.header.typeLength = letoh(pHeader->typeLength);
 	entry.header.commentLength = letoh(pHeader->commentLength);
 
-	if (entry.header.entryLength > lengthLimit) {
+	if ((entry.header.entryLength < sizeof(entry.header)) ||
+	    (entry.header.entryLength > lengthLimit)) {
 		LOG_ERROR(__FUNCTION__
 			  << "(): Corrupt entry length: " << std::dec
 			  << entry.header.entryLength << '\n');
@@ -44,7 +45,7 @@ std::pair<std::string, SymbolEntry> SymbolEntry::Parse(const uint8_t *data,
 	lengthLimit = entry.header.entryLength - sizeof(entry.header);
 	data += sizeof(entry.header);
 
-	if (entry.header.nameLength > lengthLimit - 1) {
+	if (entry.header.nameLength >= lengthLimit) {
 		LOG_ERROR(__FUNCTION__ << "(): Corrupt nameLength: " << std::dec
 				       << entry.header.nameLength << '\n');
 		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
@@ -54,7 +55,7 @@ std::pair<std::string, SymbolEntry> SymbolEntry::Parse(const uint8_t *data,
 	lengthLimit -= entry.header.nameLength + 1;
 	data += entry.header.nameLength + 1;
 
-	if (entry.header.typeLength > lengthLimit - 1) {
+	if (entry.header.typeLength >= lengthLimit) {
 		LOG_ERROR(__FUNCTION__ << "(): Corrupt typeLength: " << std::dec
 				       << entry.header.typeLength << '\n');
 		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
@@ -64,7 +65,7 @@ std::pair<std::string, SymbolEntry> SymbolEntry::Parse(const uint8_t *data,
 	lengthLimit -= entry.header.typeLength + 1;
 	data += entry.header.typeLength + 1;
 
-	if (entry.header.commentLength > lengthLimit - 1) {
+	if (entry.header.commentLength >= lengthLimit) {
 		LOG_ERROR(__FUNCTION__
 			  << "(): Corrupt commentLength: " << std::dec
 			  << entry.header.commentLength << '\n');
