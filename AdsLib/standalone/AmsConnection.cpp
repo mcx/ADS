@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2015 - 2022 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
  */
 
 #include "AmsConnection.h"
@@ -248,6 +248,14 @@ void AmsConnection::ReceiveFrame(AmsResponse *const response, size_t bytesLeft,
 
 	if (aoeError) {
 		response->Notify(aoeError);
+		ReceiveJunk(bytesLeft);
+		return;
+	}
+
+	if (bytesLeft < sizeof(header)) {
+		LOG_WARN("Frame too short: " << std::dec << bytesLeft << '<'
+					     << sizeof(header));
+		response->Notify(ADSERR_DEVICE_INVALIDSIZE);
 		ReceiveJunk(bytesLeft);
 		return;
 	}
