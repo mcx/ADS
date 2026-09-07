@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2021 - 2022 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
  */
 
 #include "AdsLib.h"
@@ -77,10 +77,10 @@ static long SendRecv(const std::string &remote, Frame &f,
 		sizeof(serviceId) + sizeof(invokeId) + sizeof(UDP_COOKIE);
 	timeval timeout{ 5, 0 };
 	s.read(f, &timeout);
-	if (headerLength > f.capacity()) {
+	if (headerLength > f.size()) {
 		LOG_ERROR(__FUNCTION__
 			  << "(): frame too short to be AMS response '0x"
-			  << std::hex << f.capacity() << "'\n");
+			  << std::hex << f.size() << "'\n");
 		return ADSERR_DEVICE_INVALIDSIZE;
 	}
 
@@ -132,10 +132,10 @@ long AddRemoteRoute(const std::string &remote, AmsNetId destNetId,
 	}
 
 	// We expect at least the AmsAddr and count fields
-	if (sizeof(AmsAddr) + sizeof(uint32_t) > f.capacity()) {
+	if (sizeof(AmsAddr) + sizeof(uint32_t) > f.size()) {
 		LOG_ERROR(__FUNCTION__
 			  << "(): frame too short to be AMS response '0x"
-			  << std::hex << f.capacity() << "'\n");
+			  << std::hex << f.size() << "'\n");
 		return ADSERR_DEVICE_INVALIDSIZE;
 	}
 
@@ -147,11 +147,11 @@ long AddRemoteRoute(const std::string &remote, AmsNetId destNetId,
 	while (count--) {
 		uint16_t tag;
 		uint16_t len;
-		if (sizeof(tag) + sizeof(len) > f.capacity()) {
+		if (sizeof(tag) + sizeof(len) > f.size()) {
 			LOG_ERROR(
 				__FUNCTION__
 				<< "(): frame too short to be AMS response '0x"
-				<< std::hex << f.capacity() << "'\n");
+				<< std::hex << f.size() << "'\n");
 			return ADSERR_DEVICE_INVALIDSIZE;
 		}
 
@@ -169,6 +169,12 @@ long AddRemoteRoute(const std::string &remote, AmsNetId destNetId,
 				__FUNCTION__
 				<< "(): response contains invalid tag length '"
 				<< std::hex << len << "'\n");
+			return ADSERR_DEVICE_INVALIDSIZE;
+		}
+		if (len > f.size()) {
+			LOG_ERROR(__FUNCTION__
+				  << "(): response too short for tag length '0x"
+				  << std::hex << len << "'\n");
 			return ADSERR_DEVICE_INVALIDSIZE;
 		}
 		return f.pop_letoh<uint32_t>();
@@ -192,10 +198,10 @@ long GetRemoteAddress(const std::string &remote, AmsNetId &netId)
 	}
 
 	// We expect at least the AmsAddr
-	if (sizeof(netId) > f.capacity()) {
+	if (sizeof(netId) > f.size()) {
 		LOG_ERROR(__FUNCTION__
 			  << "(): frame too short to be AMS response '0x"
-			  << std::hex << f.capacity() << "'\n");
+			  << std::hex << f.size() << "'\n");
 		return ADSERR_DEVICE_INVALIDSIZE;
 	}
 	memcpy(&netId, f.data(), sizeof(netId));

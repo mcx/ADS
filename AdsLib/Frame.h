@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2015 - 2022 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
  */
 
 #pragma once
@@ -68,7 +68,7 @@ struct Frame {
 	template <typename T> T pop()
 	{
 		T value{};
-		if (sizeof(value) <= capacity()) {
+		if (sizeof(value) <= size()) {
 			value = *reinterpret_cast<T *>(m_Pos);
 		}
 		remove(sizeof(T));
