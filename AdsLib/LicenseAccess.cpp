@@ -38,9 +38,8 @@ struct TcLicenseOnlineInfo {
 		uint32_t bytesRead = 0;
 		auto readBuffer = std::vector<char>(64);
 		const auto status = device.ReadWriteReqEx2(
-			LICENSE_NAME, 0x0, readBuffer.capacity(),
-			readBuffer.data(), sizeof(licenseId), &licenseId,
-			&bytesRead);
+			LICENSE_NAME, 0x0, readBuffer.size(), readBuffer.data(),
+			sizeof(licenseId), &licenseId, &bytesRead);
 		if (ADSERR_NOERR != status) {
 			LOG_ERROR(__FUNCTION__ << "(): failed with: 0x"
 					       << std::hex << status << '\n');
@@ -62,9 +61,8 @@ struct TcLicenseOnlineInfo {
 		uint32_t bytesRead = 0;
 		auto readBuffer = std::vector<char>(16);
 		const auto status = device.ReadWriteReqEx2(
-			0x0101000D, 0x0, readBuffer.capacity(),
-			readBuffer.data(), sizeof(licenseId), &licenseId,
-			&bytesRead);
+			0x0101000D, 0x0, readBuffer.size(), readBuffer.data(),
+			sizeof(licenseId), &licenseId, &bytesRead);
 		if (ADSERR_NOERR != status) {
 			LOG_ERROR(__FUNCTION__ << "(): failed with: 0x"
 					       << std::hex << status << '\n');
@@ -124,7 +122,7 @@ int LicenseAccess::ShowOnlineInfo(std::ostream &os) const
 	}
 
 	auto readBuffer = std::vector<TcLicenseOnlineInfo>(licenseCount);
-	const auto bufferSize = sizeof(readBuffer[0]) * readBuffer.capacity();
+	const auto bufferSize = sizeof(readBuffer[0]) * readBuffer.size();
 	const auto status = device.ReadReqEx2(0x01010006, 0x0, bufferSize,
 					      readBuffer.data(), &bytesRead);
 	if (ADSERR_NOERR != status) {
@@ -137,7 +135,7 @@ int LicenseAccess::ShowOnlineInfo(std::ostream &os) const
 		LOG_ERROR(__FUNCTION__
 			  << "(): read unexpected number of bytes: 0x"
 			  << std::hex << bytesRead << ", expected: 0x"
-			  << readBuffer.capacity() << '\n');
+			  << bufferSize << '\n');
 		return 1;
 	}
 

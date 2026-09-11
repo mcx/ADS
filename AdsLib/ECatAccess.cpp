@@ -70,7 +70,7 @@ long ECatAccess::ListECatMasters(std::ostream &os) const
 
 	status = device.ReadReqEx2(IOADS_IGR_IODEVICESTATE_BASE,
 				   IOADS_IOF_READDEVIDS,
-				   deviceIds.capacity() * sizeof(uint16_t),
+				   deviceIds.size() * sizeof(uint16_t),
 				   deviceIds.data(), &bytesRead);
 
 	if (status != ADSERR_NOERR) {
