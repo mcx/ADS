@@ -133,11 +133,15 @@ SymbolEntryMap SymbolAccess::FetchSymbolEntries() const
 	auto nSymbols = bhf::ads::letoh(uploadInfo.nSymbols);
 	auto entries = std::map<std::string, SymbolEntry>{};
 	while (nSymbols--) {
-		const auto next = entries.insert(bhf::ads::SymbolEntry::Parse(
-							 data, bytesRead))
-					  .first->second;
-		bytesRead -= next.header.entryLength;
-		data += next.header.entryLength;
+		const auto next = SymbolEntry::Parse(data, bytesRead);
+		/** Parse() bounds entryLength by the bytes we handed in, but
+		 * insert() keeps the first entry of a duplicate name, so we
+		 * must not walk by whatever that older entry announced.
+		 */
+		const auto length = next.second.header.entryLength;
+		entries.insert(next);
+		bytesRead -= length;
+		data += length;
 		if (!bytesRead) {
 			return entries;
 		}
