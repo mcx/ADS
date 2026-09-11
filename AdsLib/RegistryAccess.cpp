@@ -424,6 +424,7 @@ void RegistryEntry::ParseStringValue(const char *&it, size_t &lineNumber)
 }
 
 static size_t WriteEscaped(std::ostream &os, const uint8_t *it,
+			   const size_t maxLen,
 			   const bool addOpeningQuote = true)
 {
 	size_t count = 0;
@@ -431,7 +432,7 @@ static size_t WriteEscaped(std::ostream &os, const uint8_t *it,
 		os << '"';
 		++count;
 	}
-	for (; *it != '\0'; ++count, ++it) {
+	for (size_t i = 0; (i < maxLen) && (*it != '\0'); ++i, ++count, ++it) {
 		// Quotes and backslashes need to get escaped with a backslash
 		if (strchr("\\\"", *it)) {
 			os << '\\';
@@ -459,7 +460,7 @@ std::ostream &RegistryEntry::Write(std::ostream &os) const
 		currentPos += 1;
 	} else {
 		// RegistryEntry is a named registry value
-		currentPos += WriteEscaped(os, buffer.data());
+		currentPos += WriteEscaped(os, buffer.data(), buffer.size());
 	}
 
 	// Now, the actual data follows. First we write the data prefix
@@ -470,7 +471,7 @@ std::ostream &RegistryEntry::Write(std::ostream &os) const
 	// The actual data format depends on the type
 	if (type == REG_SZ) {
 		const auto dataBegin = buffer.data() + buffer.size() - dataLen;
-		WriteEscaped(os, dataBegin, false);
+		WriteEscaped(os, dataBegin, dataLen, false);
 	} else if (type == REG_DWORD) {
 		uint32_t val = 0;
 		for (size_t i = buffer.size() - sizeof(uint32_t);
