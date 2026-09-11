@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 /**
-   Copyright (c) 2015 - 2022 Beckhoff Automation GmbH & Co. KG
+   Copyright (c) Beckhoff Automation GmbH & Co. KG
  */
 
 #include <AdsLib.h>
 
 #include "AmsRouter.h"
+#include "SymbolAccess.h"
 
+#include <cstring>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 
 #include <fructose/fructose.h>
 using namespace fructose;
@@ -285,6 +288,192 @@ struct TestRingBuffer : test_base<TestRingBuffer> {
 			fructose_assert(0 == testee.WriteChunk());
 			testee.ReadFromLittleEndian<uint8_t>();
 		}
+	}
+};
+
+struct TestSymbolEntry : test_base<TestSymbolEntry> {
+	std::ostream &out;
+
+	union TestBuffer {
+		AdsSymbolEntry header;
+		uint8_t raw[128];
+	};
+
+	static TestBuffer CreateTestBuffer(const uint32_t entryLength = 0)
+	{
+		TestBuffer b;
+		memset(&b, 0, sizeof(b));
+		b.header.entryLength = bhf::ads::htole<uint32_t>(entryLength);
+		return b;
+	}
+
+	TestSymbolEntry(std::ostream &outstream)
+		: out(outstream)
+	{
+	}
+
+	void testAllEmptyStrings(const std::string &)
+	{
+		const auto testData =
+			CreateTestBuffer(sizeof(AdsSymbolEntry) + 3);
+		const auto allEmpty = bhf::ads::SymbolEntry::Parse(
+			testData.raw, sizeof(AdsSymbolEntry) + 3);
+		fructose_assert(allEmpty.second.name.empty());
+		fructose_assert(allEmpty.second.typeName.empty());
+		fructose_assert(allEmpty.second.comment.empty());
+	}
+
+	void testBufferTooShort(const std::string &)
+	{
+		const auto testData = CreateTestBuffer();
+		// Buffer too short to hold header
+		for (size_t i = 0; i < sizeof(testData.header); ++i) {
+			fructose_assert_exception(
+				bhf::ads::SymbolEntry::Parse(testData.raw, i),
+				AdsException);
+		}
+	}
+
+	void testCommentLengthLargerThanBuffer(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.commentLength = bhf::ads::htole<uint16_t>(
+			sizeof(testData) - sizeof(AdsSymbolEntry));
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testCommentLengthOverflow(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.commentLength = bhf::ads::htole<uint16_t>(
+			std::numeric_limits<uint16_t>::max());
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testCommentOnly(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(AdsSymbolEntry) + 4);
+		testData.header.commentLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 2] = 'x';
+		const auto onlyComment = bhf::ads::SymbolEntry::Parse(
+			testData.raw, sizeof(testData));
+		fructose_assert(onlyComment.second.name.empty());
+		fructose_assert(onlyComment.second.typeName.empty());
+		fructose_assert(onlyComment.second.comment == "x");
+	}
+
+	void testEntryLengthLargerThanBuffer(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer) + 1);
+		testData.header.nameLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 0] = 'n'; // name string
+		testData.header.typeLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 2] = 't'; // type string
+		testData.header.commentLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 4] =
+			'n'; // comment string
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testEntryLengthOverflow(const std::string &)
+	{
+		const auto testData =
+			CreateTestBuffer(std::numeric_limits<uint32_t>::max());
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testEntryLengthTooShort(const std::string &)
+	{
+		auto testData = CreateTestBuffer();
+		// entryLength too short to hold header and three empty NUL terminated strings
+		for (uint32_t i = 0; i < sizeof(testData.header) + 3; ++i) {
+			testData.header.entryLength =
+				bhf::ads::htole<uint32_t>(i);
+			fructose_assert_exception(
+				bhf::ads::SymbolEntry::Parse(testData.raw,
+							     sizeof(testData)),
+				AdsException);
+		}
+	}
+
+	void testNameLengthLargerThanBuffer(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.nameLength = bhf::ads::htole<uint16_t>(
+			sizeof(testData) - sizeof(AdsSymbolEntry));
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testNameLengthOverflow(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.nameLength = bhf::ads::htole<uint16_t>(
+			std::numeric_limits<uint16_t>::max());
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testNameOnly(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(AdsSymbolEntry) + 4);
+		testData.header.nameLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 0] = 'x';
+		const auto onlyName = bhf::ads::SymbolEntry::Parse(
+			testData.raw, sizeof(testData));
+		fructose_assert(onlyName.second.name == "x");
+		fructose_assert(onlyName.second.typeName.empty());
+		fructose_assert(onlyName.second.comment.empty());
+	}
+
+	void testTypeLengthLargerThanBuffer(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.typeLength = bhf::ads::htole<uint16_t>(
+			sizeof(testData) - sizeof(AdsSymbolEntry));
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testTypeLengthOverflow(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(TestBuffer));
+		testData.header.typeLength = bhf::ads::htole<uint16_t>(
+			std::numeric_limits<uint16_t>::max());
+		fructose_assert_exception(
+			bhf::ads::SymbolEntry::Parse(testData.raw,
+						     sizeof(testData)),
+			AdsException);
+	}
+
+	void testTypeOnly(const std::string &)
+	{
+		auto testData = CreateTestBuffer(sizeof(AdsSymbolEntry) + 4);
+		testData.header.typeLength = bhf::ads::htole<uint16_t>(1);
+		testData.raw[sizeof(AdsSymbolEntry) + 1] = 'x';
+		const auto onlyType = bhf::ads::SymbolEntry::Parse(
+			testData.raw, sizeof(testData));
+		fructose_assert(onlyType.second.name.empty());
+		fructose_assert(onlyType.second.typeName == "x");
+		fructose_assert(onlyType.second.comment.empty());
 	}
 };
 
@@ -1173,6 +1362,41 @@ int main()
 	ringBufferTest.add_test("testWriteChunk",
 				&TestRingBuffer::testWriteChunk);
 	failedTests += ringBufferTest.run();
+
+	TestSymbolEntry symbolEntryTest(errorstream);
+	symbolEntryTest.add_test("testAllEmptyStrings",
+				 &TestSymbolEntry::testAllEmptyStrings);
+	symbolEntryTest.add_test("testBufferTooShort",
+				 &TestSymbolEntry::testBufferTooShort);
+	symbolEntryTest.add_test(
+		"testCommentLengthLargerThanBuffer",
+		&TestSymbolEntry::testCommentLengthLargerThanBuffer);
+	symbolEntryTest.add_test("testCommentLengthOverflow",
+				 &TestSymbolEntry::testCommentLengthOverflow);
+	symbolEntryTest.add_test("testCommentOnly",
+				 &TestSymbolEntry::testCommentOnly);
+	symbolEntryTest.add_test(
+		"testEntryLengthLargerThanBuffer",
+		&TestSymbolEntry::testEntryLengthLargerThanBuffer);
+	symbolEntryTest.add_test("testEntryLengthOverflow",
+				 &TestSymbolEntry::testEntryLengthOverflow);
+	symbolEntryTest.add_test("testEntryLengthTooShort",
+				 &TestSymbolEntry::testEntryLengthTooShort);
+	symbolEntryTest.add_test(
+		"testNameLengthLargerThanBuffer",
+		&TestSymbolEntry::testNameLengthLargerThanBuffer);
+	symbolEntryTest.add_test("testNameLengthOverflow",
+				 &TestSymbolEntry::testNameLengthOverflow);
+	symbolEntryTest.add_test("testNameOnly",
+				 &TestSymbolEntry::testNameOnly);
+	symbolEntryTest.add_test(
+		"testTypeLengthLargerThanBuffer",
+		&TestSymbolEntry::testTypeLengthLargerThanBuffer);
+	symbolEntryTest.add_test("testTypeLengthOverflow",
+				 &TestSymbolEntry::testTypeLengthOverflow);
+	symbolEntryTest.add_test("testTypeOnly",
+				 &TestSymbolEntry::testTypeOnly);
+	failedTests += symbolEntryTest.run();
 #endif
 	TestAds adsTest(errorstream);
 	adsTest.add_test("testAdsPortOpenEx", &TestAds::testAdsPortOpenEx);
