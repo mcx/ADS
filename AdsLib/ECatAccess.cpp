@@ -2,6 +2,7 @@
 #include "AdsLib.h"
 #include "Log.h"
 #include <iostream>
+#include <limits>
 #include <vector>
 
 namespace bhf
@@ -46,8 +47,8 @@ ECatAccess::ECatAccess(const std::string &gw, const AmsNetId netid,
 
 long ECatAccess::ListECatMasters(std::ostream &os) const
 {
-	uint32_t numberOfDevices;
-	uint32_t bytesRead;
+	uint32_t numberOfDevices = 0;
+	uint32_t bytesRead = 0;
 
 	auto status = device.ReadReqEx2(IOADS_IGR_IODEVICESTATE_BASE,
 					IOADS_IOF_READDEVCOUNT,
@@ -60,8 +61,23 @@ long ECatAccess::ListECatMasters(std::ostream &os) const
 		return status;
 	}
 
+	if (bytesRead != sizeof(numberOfDevices)) {
+		LOG_ERROR("Corrupt device count length: " << std::dec
+							  << bytesRead);
+		return ADSERR_DEVICE_INVALIDDATA;
+	}
+
+	numberOfDevices = letoh(numberOfDevices);
 	if (numberOfDevices == 0) {
 		return status;
+	}
+
+	// A device id is 16 bit, so a bigger count is nonsense and would make
+	// the "+ 1" below wrap to an empty vector we then index into.
+	if (numberOfDevices > std::numeric_limits<uint16_t>::max()) {
+		LOG_ERROR("Device count out of range: " << std::dec
+							<< numberOfDevices);
+		return ADSERR_DEVICE_INVALIDDATA;
 	}
 
 	// the first element of the vector is set to devCount,
