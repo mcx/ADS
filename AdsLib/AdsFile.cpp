@@ -4,6 +4,7 @@
  */
 
 #include "AdsFile.h"
+#include "Log.h"
 #include <iostream>
 #include <list>
 #include <vector>
@@ -22,7 +23,6 @@ struct TcFileFindData {
 	uint64_t nReserved1[5];
 	char cFileName[260];
 	char unused[14];
-	uint16_t nReserved2;
 
 	bool isDirectory(void) const
 	{
@@ -40,18 +40,32 @@ struct TcFileFindData {
 static bool FindNext(const AdsDevice &route, TcFileFindData &child,
 		     const size_t length = 0, const char *const path = nullptr)
 {
+	uint32_t bytesRead = 0;
 	const auto error = route.ReadWriteReqEx2(SYSTEMSERVICE_FFILEFIND,
 						 child.hFile, sizeof(child),
-						 &child, length, path, nullptr);
+						 &child, length, path,
+						 &bytesRead);
 	// We reached the last child
 	// If there is no more file in the current path the ADS service will
 	// return ads error code 1804 so we can break and exit as expected.
-	if (error && (error != 1804)) {
+	if (error == 1804) {
+		return true;
+	}
+	if (error) {
 		throw AdsException(error);
 	}
+	if (bytesRead != sizeof(child)) {
+		LOG_ERROR(__FUNCTION__ << "(): read " << std::dec << bytesRead
+				       << " bytes, expected " << sizeof(child)
+				       << '\n');
+		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
+	}
+	// The device fills cFileName up to its last byte, but we hand it out
+	// as a NUL terminated string, so terminate it ourselves.
+	child.cFileName[sizeof(child.cFileName) - 1] = '\0';
 	// TwinCAT sends data in little endian so we have to convert it here
 	child.letoh();
-	return error == 1804;
+	return false;
 }
 
 static bool FindFirst(const AdsDevice &route, TcFileFindData &item,
