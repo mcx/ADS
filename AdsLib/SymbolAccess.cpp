@@ -229,7 +229,7 @@ int SymbolAccess::Read(const std::string &name, std::ostream &os) const
 		break;
 	}
 
-	return !std::cout.good();
+	return !os.good();
 }
 
 template <typename T>
