@@ -174,53 +174,41 @@ int SymbolAccess::Read(const std::string &name, std::ostream &os) const
 		return status;
 	}
 
+	/** The argument only selects the type, its value is unused. */
+	auto print = [&](auto tag) -> int {
+		using T = decltype(tag);
+		// unary + promotes uint8_t, so BYTE/BOOL print as a number
+		os << std::dec
+		   << +letoh(*reinterpret_cast<const T *>(readBuffer.data()))
+		   << '\n';
+		return !os.good();
+	};
+
 	switch (entry.header.dataType) {
 	case 0x2: //INT
-		os << std::dec
-		   << letoh(*reinterpret_cast<int16_t *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(int16_t{});
 
 	case 0x3: //DINT
-		os << std::dec
-		   << letoh(*reinterpret_cast<int32_t *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(int32_t{});
 
 	case 0x4: //REAL
-		os << std::dec
-		   << letoh(*reinterpret_cast<float *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(float{});
 
 	case 0x5: //LREAL
-		os << std::dec
-		   << letoh(*reinterpret_cast<double *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(double{});
 
 	case 0x11: // BYTE
 	case 0x21: // BOOL
-		os << std::dec << (int)readBuffer.data()[0] << '\n';
-		break;
+		return print(uint8_t{});
 
 	case 0x12: // WORD, UINT
-		os << std::dec
-		   << letoh(*reinterpret_cast<uint16_t *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(uint16_t{});
 
 	case 0x13: // DWORD, UDINT
-		os << std::dec
-		   << letoh(*reinterpret_cast<uint32_t *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(uint32_t{});
 
 	case 0x15: // LWORD, ULINT
-		os << std::dec
-		   << letoh(*reinterpret_cast<uint64_t *>(readBuffer.data()))
-		   << '\n';
-		break;
+		return print(uint64_t{});
 
 	default:
 		LOG_WARN(__FUNCTION__ << "() Unknown type '" << entry.typeName
