@@ -174,9 +174,21 @@ int SymbolAccess::Read(const std::string &name, std::ostream &os) const
 		return status;
 	}
 
-	/** The argument only selects the type, its value is unused. */
+	/** The argument only selects the type, its value is unused.
+	 *
+	 * size and dataType are independent fields of the symbol upload, so a
+	 * crafted entry can announce a one byte symbol together with an eight
+	 * byte type.
+	 */
 	auto print = [&](auto tag) -> int {
 		using T = decltype(tag);
+		if (bytesRead < sizeof(T)) {
+			LOG_ERROR(__FUNCTION__ << "(): symbol '" << name
+					       << "' read " << std::dec
+					       << bytesRead << " bytes for a "
+					       << sizeof(T) << " byte type\n");
+			return ADSERR_DEVICE_INVALIDDATA;
+		}
 		// unary + promotes uint8_t, so BYTE/BOOL print as a number
 		os << std::dec
 		   << +letoh(*reinterpret_cast<const T *>(readBuffer.data()))
