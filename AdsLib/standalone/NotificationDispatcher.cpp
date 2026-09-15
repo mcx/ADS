@@ -60,39 +60,102 @@ void NotificationDispatcher::Run()
 		if (stopExecution) {
 			return;
 		}
+		// We wrote the fullLength ourself in AmsConnection::ReceiveNotification()
 		auto fullLength = ring.ReadFromLittleEndian<uint32_t>();
+
+		/** fullLength counts the payload only, AmsConnection wrote it
+		 * next to the payload and not as part of it. So the shortest
+		 * well formed stream is its own length plus a stamp count.
+		 */
+		if (fullLength < 2 * sizeof(uint32_t)) {
+			LOG_WARN("Notification length too short: "
+				 << std::dec << fullLength);
+			ring.Read(fullLength);
+			continue;
+		}
+
+		/** From here on fullLength is what is left in the ring for this
+		 * notification, so every skip below is exact. Subtracting
+		 * before the check above would wrap it for a runt frame.
+		 */
+		fullLength -= sizeof(uint32_t);
+
+		// The stream repeats its length, counted from behind that field
 		const auto length = ring.ReadFromLittleEndian<uint32_t>();
-		(void)length;
-		const auto numStamps = ring.ReadFromLittleEndian<uint32_t>();
-		fullLength -= sizeof(length) + sizeof(numStamps);
-		for (uint32_t stamp = 0; stamp < numStamps; ++stamp) {
-			const auto timestamp =
-				ring.ReadFromLittleEndian<uint64_t>();
-			const auto numSamples =
+		if (length != fullLength) {
+			LOG_WARN("Notification length mismatch: "
+				 << std::dec << length << " != " << std::dec
+				 << fullLength);
+			ring.Read(fullLength);
+			continue;
+		}
+
+		auto numStamps = ring.ReadFromLittleEndian<uint32_t>();
+		fullLength -= sizeof(numStamps);
+		while (numStamps-- > 0) {
+#pragma pack(push, 1)
+			struct {
+				uint64_t timestamp;
+				uint32_t numSamples;
+			} stamp;
+#pragma pack(pop)
+			if (sizeof(stamp) > fullLength) {
+				LOG_WARN(
+					"Notification too short for stamp header: "
+					<< std::dec << fullLength);
+				goto cleanup;
+			}
+
+			stamp.timestamp = ring.ReadFromLittleEndian<uint64_t>();
+			stamp.numSamples =
 				ring.ReadFromLittleEndian<uint32_t>();
-			fullLength -= sizeof(timestamp) + sizeof(numSamples);
-			for (uint32_t sample = 0; sample < numSamples;
-			     ++sample) {
-				const auto hNotify =
+			fullLength -= sizeof(stamp);
+			while (stamp.numSamples-- > 0) {
+#pragma pack(push, 1)
+				struct {
+					uint32_t hNotify;
+					uint32_t size;
+				} sample;
+#pragma pack(pop)
+
+				if (sizeof(sample) > fullLength) {
+					LOG_WARN(
+						"Notification too short for sample header: "
+						<< std::dec << fullLength);
+					goto cleanup;
+				}
+				sample.hNotify =
 					ring.ReadFromLittleEndian<uint32_t>();
-				const auto size =
+				sample.size =
 					ring.ReadFromLittleEndian<uint32_t>();
-				fullLength -= sizeof(hNotify) + sizeof(size);
-				const auto notification = Find(hNotify);
+				fullLength -= sizeof(sample);
+
+				if (sample.size > fullLength) {
+					LOG_WARN("Notification too short: "
+						 << std::dec << fullLength
+						 << " to hold sample data "
+						 << std::dec << sample.size);
+					goto cleanup;
+				}
+				const auto notification = Find(sample.hNotify);
 				if (notification) {
-					if (size != notification->Size()) {
+					if (sample.size !=
+					    notification->Size()) {
 						LOG_WARN(
 							"Notification sample size: "
-							<< size
+							<< sample.size
 							<< " doesn't match: "
 							<< notification->Size());
 						goto cleanup;
 					}
-					notification->Notify(timestamp, ring);
+					notification->Notify(stamp.timestamp,
+							     ring);
 				} else {
-					ring.Read(size);
+					LOG_WARN("Unhandled Notification: 0x"
+						 << std::hex << sample.hNotify);
+					ring.Read(sample.size);
 				}
-				fullLength -= size;
+				fullLength -= sample.size;
 			}
 		}
 cleanup:
