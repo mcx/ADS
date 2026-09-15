@@ -162,7 +162,7 @@ AdsHandle AdsDevice::OpenFile(const std::string &filename,
 			      const uint32_t flags) const
 {
 	uint32_t bytesRead = 0;
-	uint32_t handle;
+	uint32_t handle = 0;
 	const auto error = ReadWriteReqEx2(SYSTEMSERVICE_FOPEN, flags,
 					   sizeof(handle), &handle,
 					   filename.length(), filename.c_str(),
@@ -170,6 +170,9 @@ AdsHandle AdsDevice::OpenFile(const std::string &filename,
 
 	if (error) {
 		throw AdsException(error);
+	}
+	if (bytesRead != sizeof(handle)) {
+		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
 	}
 	handle = bhf::ads::letoh(handle);
 	return { new uint32_t{ handle },
