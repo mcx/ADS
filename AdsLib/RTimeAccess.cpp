@@ -41,8 +41,8 @@ RTimeAccess::RTimeAccess(const std::string &gw, const AmsNetId netid,
 
 RTimeCpuSettings RTimeAccess::ReadCpuSettings() const
 {
-	struct RTimeCpuSettings settings;
-	uint32_t bytesRead;
+	struct RTimeCpuSettings settings{};
+	uint32_t bytesRead = 0;
 
 	const auto status =
 		device.ReadReqEx2(ADSSRVID_READDEVICEINFO, RTIME_CPU_SETTINGS,
@@ -51,6 +51,11 @@ RTimeCpuSettings RTimeAccess::ReadCpuSettings() const
 		LOG_ERROR(__FUNCTION__ << "(): failed with: 0x" << std::hex
 				       << status << '\n');
 		throw AdsException(status);
+	}
+	if (bytesRead != sizeof(settings)) {
+		LOG_ERROR(__FUNCTION__ << "(): corrupt response length: "
+				       << std::dec << bytesRead << '\n');
+		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
 	}
 	return settings;
 }
@@ -87,8 +92,8 @@ long RTimeAccess::SetSharedCores(const uint32_t sharedCores) const
 long RTimeAccess::ShowLatency(const uint32_t indexOffset,
 			      const uint32_t cpuId) const
 {
-	struct RTimeCpuLatency info;
-	uint32_t bytesRead;
+	struct RTimeCpuLatency info{};
+	uint32_t bytesRead = 0;
 
 	const auto status = device.ReadWriteReqEx2(ADSSRVID_READDEVICEINFO,
 						   indexOffset, sizeof(info),
@@ -100,6 +105,12 @@ long RTimeAccess::ShowLatency(const uint32_t indexOffset,
 				       << "): failed with: 0x" << std::hex
 				       << status << '\n');
 		return status;
+	}
+	if (bytesRead != sizeof(info)) {
+		LOG_ERROR(__FUNCTION__ << "(" << std::dec << cpuId
+				       << "): corrupt response length: "
+				       << std::dec << bytesRead << '\n');
+		return ADSERR_DEVICE_INVALIDDATA;
 	}
 	std::cout << std::dec << cpuId << ": " << info << '\n';
 	return 0;
