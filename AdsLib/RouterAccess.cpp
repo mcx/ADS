@@ -76,7 +76,7 @@ bool RouterAccess::PciScan(const uint64_t pci_id, std::ostream &os) const
 #define ROUTERADSOFFS_A_HW_SEARCHPCIBUS 0x00000003
 
 	SearchPciBusResNew res{};
-	uint32_t bytesRead;
+	uint32_t bytesRead = 0;
 
 	const auto req = SearchPciBusReq{ pci_id };
 	const auto status = device.ReadWriteReqEx2(
@@ -89,6 +89,13 @@ bool RouterAccess::PciScan(const uint64_t pci_id, std::ostream &os) const
 		return false;
 	}
 
+	if (bytesRead < sizeof(res.leFound)) {
+		LOG_ERROR(__FUNCTION__ << "(): response too short to hold a "
+					  "slot count: "
+				       << std::dec << bytesRead << '\n');
+		return false;
+	}
+
 	if (res.slot.size() < res.nFound()) {
 		LOG_WARN(__FUNCTION__ << "(): data seems corrupt. Slot count 0x"
 				      << std::hex << res.nFound()
@@ -96,7 +103,13 @@ bool RouterAccess::PciScan(const uint64_t pci_id, std::ostream &os) const
 				      << res.slot.size() << " -> truncating\n");
 	}
 
+	/** res is zero initialised, so slots the device did not send would
+	 * print as empty entries instead of being left out.
+	 */
+	const auto received =
+		(bytesRead - sizeof(res.leFound)) / sizeof(res.slot[0]);
 	auto limit = std::min<size_t>(res.slot.size(), res.nFound());
+	limit = std::min<size_t>(limit, received);
 	os << "PCI devices found: " << std::dec << limit << '\n';
 	for (const auto &slot : res.slot) {
 		if (!limit--) {
