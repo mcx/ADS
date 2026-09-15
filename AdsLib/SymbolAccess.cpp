@@ -108,7 +108,7 @@ SymbolEntryMap SymbolAccess::FetchSymbolEntries() const
 	struct AdsSymbolUploadInfo {
 		uint32_t nSymbols;
 		uint32_t nSymSize;
-	} uploadInfo;
+	} uploadInfo{};
 	auto status = device.ReadReqEx2(ADSIGRP_SYM_UPLOADINFO, 0,
 					sizeof(uploadInfo), &uploadInfo,
 					&bytesRead);
@@ -117,6 +117,13 @@ SymbolEntryMap SymbolAccess::FetchSymbolEntries() const
 			  << "(): Reading symbol info failed with: 0x"
 			  << std::hex << status << '\n');
 		throw AdsException(status);
+	}
+
+	if (bytesRead != sizeof(uploadInfo)) {
+		LOG_ERROR(__FUNCTION__
+			  << "(): Corrupt symbol upload info length: "
+			  << std::dec << bytesRead << '\n');
+		throw AdsException(ADSERR_DEVICE_INVALIDDATA);
 	}
 
 	uploadInfo.nSymSize = bhf::ads::letoh(uploadInfo.nSymSize);
