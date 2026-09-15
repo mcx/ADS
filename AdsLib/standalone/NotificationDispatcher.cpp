@@ -63,6 +63,20 @@ void NotificationDispatcher::Run()
 		// We wrote the fullLength ourself in AmsConnection::ReceiveNotification()
 		auto fullLength = ring.ReadFromLittleEndian<uint32_t>();
 
+		/** Every bound below is taken from fullLength, never from the
+		 * ring itself, so the two have to agree. If they do not, our
+		 * own bookkeeping drifted and the ring no longer holds what we
+		 * think it does. The counting semaphore leaves us no way to
+		 * drain and resync, so stop parsing instead.
+		 */
+		if (fullLength > ring.BytesAvailable()) {
+			LOG_ERROR("Notification length "
+				  << std::dec << fullLength
+				  << " exceeds the ring content: " << std::dec
+				  << ring.BytesAvailable());
+			return;
+		}
+
 		/** fullLength counts the payload only, AmsConnection wrote it
 		 * next to the payload and not as part of it. So the shortest
 		 * well formed stream is its own length plus a stamp count.
