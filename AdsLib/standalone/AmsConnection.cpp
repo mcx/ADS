@@ -344,13 +344,23 @@ void AmsConnection::Recv()
 	AoEHeader aoeHeader;
 	for (; ownIp;) {
 		Receive(amsTcpHeader);
-		if (amsTcpHeader.length() < sizeof(aoeHeader)) {
+		size_t bytesLeft = amsTcpHeader.length();
+		if (sizeof(aoeHeader) > bytesLeft) {
 			LOG_WARN("Frame to short to be AoE");
-			ReceiveJunk(amsTcpHeader.length());
+			ReceiveJunk(bytesLeft);
 			continue;
 		}
 
 		Receive(aoeHeader);
+		bytesLeft -= sizeof(aoeHeader);
+		if (aoeHeader.length() != bytesLeft) {
+			LOG_WARN("AoE length " << std::dec << aoeHeader.length()
+					       << " doesn't match the frame: "
+					       << std::dec << bytesLeft);
+			ReceiveJunk(bytesLeft);
+			continue;
+		}
+
 		if (aoeHeader.cmdId() == AoEHeader::DEVICE_NOTIFICATION) {
 			ReceiveNotification(aoeHeader);
 			continue;
