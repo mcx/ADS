@@ -170,13 +170,18 @@ int LicenseAccess::ShowOnlineInfo(std::ostream &os) const
 
 int LicenseAccess::ShowPlatformId(std::ostream &os) const
 {
-	uint16_t platformId;
+	uint16_t platformId = 0;
 	uint32_t bytesRead = 0;
 	const auto status = device.ReadReqEx2(
 		0x01010004, 0x2, sizeof(platformId), &platformId, &bytesRead);
 	if (ADSERR_NOERR != status) {
 		LOG_ERROR(__FUNCTION__ << "(): failed with: 0x" << std::hex
 				       << status << '\n');
+		return 1;
+	}
+	if (bytesRead != sizeof(platformId)) {
+		LOG_ERROR(__FUNCTION__ << "(): corrupt platform id length: "
+				       << std::dec << bytesRead << '\n');
 		return 1;
 	}
 	os << bhf::ads::letoh(platformId) << '\n';
@@ -195,6 +200,11 @@ int LicenseAccess::ShowSystemId(std::ostream &os) const
 				       << status << '\n');
 		return 1;
 	}
+	if (bytesRead != readBuffer.size()) {
+		LOG_ERROR(__FUNCTION__ << "(): corrupt system id length: "
+				       << std::dec << bytesRead << '\n');
+		return 1;
+	}
 	char buf[38];
 	snprintf(
 		buf, sizeof(buf),
@@ -209,13 +219,18 @@ int LicenseAccess::ShowSystemId(std::ostream &os) const
 
 int LicenseAccess::ShowVolumeNo(std::ostream &os) const
 {
-	uint32_t volumeNo;
+	uint32_t volumeNo = 0;
 	uint32_t bytesRead = 0;
 	const auto status = device.ReadReqEx2(0x01010004, 0x5, sizeof(volumeNo),
 					      &volumeNo, &bytesRead);
 	if (ADSERR_NOERR != status) {
 		LOG_ERROR(__FUNCTION__ << "(): failed with: 0x" << std::hex
 				       << status << '\n');
+		return 1;
+	}
+	if (bytesRead != sizeof(volumeNo)) {
+		LOG_ERROR(__FUNCTION__ << "(): corrupt volume number length: "
+				       << std::dec << bytesRead << '\n');
 		return 1;
 	}
 	os << bhf::ads::letoh(volumeNo) << '\n';
