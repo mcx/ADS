@@ -115,6 +115,12 @@ int LicenseAccess::ShowOnlineInfo(std::ostream &os) const
 		return 1;
 	}
 
+	if (bytesRead != sizeof(licenseCount)) {
+		LOG_ERROR(__FUNCTION__ << "(): corrupt license count length: "
+				       << std::dec << bytesRead << '\n');
+		return 1;
+	}
+
 	licenseCount = bhf::ads::letoh(licenseCount);
 	if (0 == licenseCount) {
 		LOG_WARN(__FUNCTION__ << "(): no license available\n");
