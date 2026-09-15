@@ -41,7 +41,7 @@ void Logger::Log(const size_t level, const std::string &msg)
 		std::time_t tt = std::chrono::system_clock::to_time_t(
 			std::chrono::system_clock::now());
 		const auto category = CATEGORY[std::min(
-			level, sizeof(CATEGORY) / sizeof(CATEGORY[0]))];
+			level, sizeof(CATEGORY) / sizeof(CATEGORY[0]) - 1)];
 		char dateTime[28];
 
 		//TODO use std::put_time() when available
