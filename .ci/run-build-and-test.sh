@@ -64,12 +64,17 @@ case "${CI_JOB_NAME}" in
 		;;
 esac
 
-# If the job name contains 'test' we run tests, too.
+# AdsLibUnitTest needs no ads-server, so it runs in every job. Meson skips
+# it by itself where it cannot execute a cross compiled binary.
+meson test -C build
+
+# The tests comparing us against a real TwinCAT need an ads-server and we
+# only get one in jobs named '*test*'.
 case "${CI_JOB_NAME}" in
 	*test*)
 		./tools/90_run_tests.sh
 		;;
 	*)
-		printf 'WARNING skipping tests for "%s".\n' "${CI_JOB_NAME}"
+		printf 'WARNING: skipping ads-server tests for "%s".\n' "${CI_JOB_NAME}" >&2
 		;;
 esac

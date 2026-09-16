@@ -5,6 +5,7 @@ ar = '/usr/bin/mips-linux-gnu-ar'
 strip = '/usr/bin/mips-gnu-linux-strip'
 pkgconfig = '/usr/bin/pkg-config-32'
 llvm-config = '/usr/bin/llvm-config32'
+exe_wrapper = 'qemu-mips'
 
 [host_machine]
 system = 'linux'
