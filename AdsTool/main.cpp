@@ -27,7 +27,7 @@
 
 static int version()
 {
-	std::cout << "113.0.35-1\n";
+	std::cout << "113.0.36-1\n";
 	return 0;
 }
 

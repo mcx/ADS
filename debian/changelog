@@ -1,3 +1,33 @@
+adstool (113.0.36-1) trixie; urgency=medium
+
+  * Log: keep the category index inside the array
+  * RouterAccess: only print the PCI slots we received
+  * LicenseAccess: validate the identification responses
+  * AdsDevice: validate the file handle
+  * RTimeAccess: validate the CPU responses
+  * LicenseAccess: validate the license count
+  * SymbolAccess: validate the symbol upload info
+  * AmsConnection: double check AoE length matches AMS length
+  * NotificationDispatcher: check the ring holds the notification
+  * NotificationDispatcher: bound reads by the length
+  * SymbolAccess: check the width before casting a symbol
+  * SymbolAccess: print symbol values through one helper
+  * SymbolAccess: report the state of our own stream
+  * AdsFile: validate the file find response
+  * SymbolAccess: walk by the entry we just parsed
+  * RegistryAccess: bound the escaped string writer
+  * ECatAccess: reject absurd device counts
+  * AdsLib: size read buffers by size() not capacity()
+  * Frame: check the remaining bytes in pop()
+  * SymbolAccess: reject too short symbol entries
+  * AmsConnection: reject huge notifications on 32 bit hosts
+  * AmsConnection: reject too short AoE responses
+  * AdsException: store the message in a fixed buffer
+  * AmsRouter: only re-acquire the lock if it was released
+  * AmsRouter: catch all exceptions in AddRoute
+
+ -- Patrick Bruenn <p.bruenn@beckhoff.com>  Wed, 16 Sep 2026 18:55:40 +0000
+
 adstool (113.0.35-1) trixie; urgency=medium
 
   * AdsTool: add file rename command
