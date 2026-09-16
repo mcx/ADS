@@ -29,14 +29,16 @@ case "${CI_JOB_NAME}" in
 		export QEMU_LD_PREFIX='/usr/riscv64-linux-gnu'
 		export QEMU_USER_EMULATION='qemu-riscv64'
 		;;
-	*tcbsd*):
+	*tcbsd*)
 		BHF_CI_MESON_OPTIONS='--native-file meson.native.tcbsd'
 		SUDO_CMD=doas
 		;;
-	*tclur*):
+	*tclur*)
 		BHF_CI_MESON_OPTIONS='--native-file meson.native.tclur'
 		;;
 	*)
+		printf 'ERROR: Catching unknown flavor "%s".\n' "${CI_JOB_NAME}" >&2
+		exit 1
 		;;
 esac
 
