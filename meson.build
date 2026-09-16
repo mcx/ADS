@@ -133,6 +133,17 @@ adslibtest = executable('AdsLibTest',
   link_with: adslib,
 )
 
+# Unlike AdsLibTest these need no ads-server, so they can run anywhere,
+# including the cross compiled builds.
+adslibunittest = executable('AdsLibUnitTest',
+  'AdsLibUnitTest/main.cpp',
+  include_directories: inc,
+  dependencies: libs,
+  link_with: adslib,
+)
+
+test('unit', adslibunittest)
+
 adslibooitest = executable('AdsLibOOITest',
   'AdsLibOOITest/main.cpp',
   include_directories: inc,
