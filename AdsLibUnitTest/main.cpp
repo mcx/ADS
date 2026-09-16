@@ -5,6 +5,7 @@
 
 #include <AdsLib.h>
 
+#include "Frame.h"
 #include "RingBuffer.h"
 #include "SymbolAccess.h"
 
@@ -314,6 +315,46 @@ struct TestSymbolEntry : test_base<TestSymbolEntry> {
 	}
 };
 
+struct TestFrame : test_base<TestFrame> {
+	std::ostream &out;
+
+	TestFrame(std::ostream &outstream)
+		: out(outstream)
+	{
+	}
+
+	/** pop() used to bound itself by capacity(), which stays at the size
+	 * of the allocation, so a drained frame kept reading from m_Pos.
+	 */
+	void testPopBeyondEnd(const std::string &)
+	{
+		const uint8_t data[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+		Frame testee{ sizeof(data), data };
+
+		fructose_assert(sizeof(data) == testee.size());
+		fructose_assert(0x04030201 == testee.pop_letoh<uint32_t>());
+		fructose_assert(4 == testee.size());
+		fructose_assert(0x08070605 == testee.pop_letoh<uint32_t>());
+		fructose_assert(0 == testee.size());
+
+		/** empty now, but capacity() still reports the allocation */
+		fructose_assert(sizeof(data) == testee.capacity());
+		fructose_assert(0 == testee.pop_letoh<uint32_t>());
+		fructose_assert(0 == testee.size());
+	}
+
+	void testPopLargerThanFrame(const std::string &)
+	{
+		const uint8_t data[] = { 1, 2 };
+		Frame testee{ sizeof(data), data };
+
+		/** a T that never fitted into the frame at all */
+		fructose_assert(sizeof(data) == testee.size());
+		fructose_assert(0 == testee.pop_letoh<uint32_t>());
+		fructose_assert(0 == testee.size());
+	}
+};
+
 int main()
 {
 	std::ostream &errorstream = std::cout;
@@ -327,6 +368,12 @@ int main()
 	TestIpV4 ipv4Test(errorstream);
 	ipv4Test.add_test("testComparsion", &TestIpV4::testComparsion);
 	failedTests += ipv4Test.run();
+
+	TestFrame frameTest(errorstream);
+	frameTest.add_test("testPopBeyondEnd", &TestFrame::testPopBeyondEnd);
+	frameTest.add_test("testPopLargerThanFrame",
+			   &TestFrame::testPopLargerThanFrame);
+	failedTests += frameTest.run();
 
 	TestRingBuffer ringBufferTest(errorstream);
 	ringBufferTest.add_test("testBytesFree",
