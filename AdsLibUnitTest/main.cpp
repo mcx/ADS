@@ -6,12 +6,17 @@
 #include <AdsLib.h>
 
 #include "Frame.h"
+#include "NotificationDispatcher.h"
 #include "RingBuffer.h"
 #include "SymbolAccess.h"
 
+#include <chrono>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <limits>
+#include <thread>
+#include <vector>
 
 #include <fructose/fructose.h>
 using namespace fructose;
@@ -355,6 +360,160 @@ struct TestFrame : test_base<TestFrame> {
 	}
 };
 
+static size_t g_NumDispatched = 0;
+static void DispatchCallback(const AmsAddr *, const AdsNotificationHeader *,
+			     uint32_t)
+{
+	++g_NumDispatched;
+}
+
+struct TestNotificationDispatcher : test_base<TestNotificationDispatcher> {
+	static const uint32_t HNOTIFY = 0xdeadbeef;
+	std::ostream &out;
+
+	TestNotificationDispatcher(std::ostream &outstream)
+		: out(outstream)
+	{
+	}
+
+	static long NeverDelete(uint32_t, uint32_t)
+	{
+		return 0;
+	}
+
+	/** an AdsNotificationStream with a single stamp and a single sample.
+	 * cbLength counts the stream from behind its own field, so it is the
+	 * length AmsConnection stored for us minus that field.
+	 */
+	static std::vector<uint8_t> Payload(uint32_t cbLength,
+					    uint32_t numStamps,
+					    uint32_t numSamples,
+					    uint32_t hNotify, uint32_t size)
+	{
+		const uint32_t words[] = {
+			cbLength,   numStamps, 0,
+			0, // timestamp
+			numSamples, hNotify,   size,
+		};
+		std::vector<uint8_t> payload;
+		for (const auto word : words) {
+			const auto le = bhf::ads::htole(word);
+			const auto pos = reinterpret_cast<const uint8_t *>(&le);
+			payload.insert(payload.end(), pos, pos + sizeof(le));
+		}
+		return payload;
+	}
+
+	/** emulate AmsConnection::ReceiveNotification(), which stores the
+	 * length in front of the payload
+	 */
+	static void Feed(RingBuffer &ring, const std::vector<uint8_t> &payload,
+			 uint32_t length)
+	{
+		for (size_t i = 0; i < sizeof(length); ++i) {
+			*ring.write = (length >> (8 * i)) & 0xFF;
+			ring.Write(1);
+		}
+		for (uint32_t i = 0; i < length; ++i) {
+			*ring.write = payload[i];
+			ring.Write(1);
+		}
+	}
+
+	static bool WaitFor(const std::function<bool()> &done)
+	{
+		const auto deadline = std::chrono::steady_clock::now() +
+				      std::chrono::seconds(2);
+		while (std::chrono::steady_clock::now() < deadline) {
+			if (done()) {
+				return true;
+			}
+			std::this_thread::sleep_for(
+				std::chrono::milliseconds(1));
+		}
+		return false;
+	}
+
+	/** Feed a malformed notification followed by a well formed one. The
+	 * dispatcher has to skip exactly the bad one and still deliver the
+	 * good one. Draining the ring is not a useful assertion on its own,
+	 * it runs empty while the parser is still spinning through its loops.
+	 */
+	static bool Dispatch(uint32_t length, uint32_t numStamps,
+			     uint32_t numSamples, uint32_t size)
+	{
+		NotificationDispatcher dispatcher{ NeverDelete };
+		g_NumDispatched = 0;
+		dispatcher.Emplace(HNOTIFY, std::make_shared<Notification>(
+						    &DispatchCallback, 0, 1,
+						    AmsAddr{}, 0));
+
+		/** a stream too short to hold its own length never gets far
+		 * enough for cbLength to be read
+		 */
+		const uint32_t cbLength =
+			(length < sizeof(uint32_t)) ?
+				0 :
+				length -
+					static_cast<uint32_t>(sizeof(uint32_t));
+		Feed(dispatcher.ring,
+		     Payload(cbLength, numStamps, numSamples, HNOTIFY, size),
+		     length);
+		dispatcher.Notify();
+
+		auto good = Payload(0, 1, 1, HNOTIFY, 1);
+		good.push_back(0xa5);
+		const auto goodLength = static_cast<uint32_t>(good.size());
+		/** patch cbLength now that we know how long the stream is */
+		const auto le = bhf::ads::htole(
+			goodLength - static_cast<uint32_t>(sizeof(uint32_t)));
+		memcpy(good.data(), &le, sizeof(le));
+		Feed(dispatcher.ring, good, goodLength);
+		dispatcher.Notify();
+
+		return WaitFor([]() { return 1 == g_NumDispatched; }) &&
+		       !dispatcher.ring.BytesAvailable();
+	}
+
+	void testTruncatedNotification(const std::string &)
+	{
+		/** a length below the stream header underflowed fullLength */
+		fructose_assert(Dispatch(0, 0, 0, 0));
+		fructose_assert(Dispatch(4, 0, 0, 0));
+		fructose_assert(Dispatch(7, 0, 0, 0));
+	}
+
+	/** The counts below are deliberately not UINT32_MAX. Anything above
+	 * zero is already more than fits and the parser bails on the first
+	 * iteration, so the extra range buys no coverage. It only costs: if
+	 * the bound regresses the parser runs one iteration per count and
+	 * nothing can interrupt it, because ~NotificationDispatcher() joins
+	 * the thread. 4G of those under qemu is a hung CI job rather than a
+	 * red one.
+	 */
+	void testNumStampsTooBig(const std::string &)
+	{
+		fructose_assert(Dispatch(8, 0xffff, 0, 0));
+	}
+
+	void testNumSamplesTooBig(const std::string &)
+	{
+		fructose_assert(Dispatch(20, 1, 0xffff, 0));
+	}
+
+	void testSampleSizeTooBig(const std::string &)
+	{
+		/** a size is not a loop count, so UINT32_MAX is free here */
+		fructose_assert(Dispatch(28, 1, 1, 0xffffffff));
+	}
+
+	void testEmptyNotification(const std::string &)
+	{
+		/** a well formed notification without any stamp */
+		fructose_assert(Dispatch(8, 0, 0, 0));
+	}
+};
+
 int main()
 {
 	std::ostream &errorstream = std::cout;
@@ -416,6 +575,24 @@ int main()
 	symbolEntryTest.add_test("testTypeOnly",
 				 &TestSymbolEntry::testTypeOnly);
 	failedTests += symbolEntryTest.run();
+
+	TestNotificationDispatcher dispatcherTest(errorstream);
+	dispatcherTest.add_test(
+		"testTruncatedNotification",
+		&TestNotificationDispatcher::testTruncatedNotification);
+	dispatcherTest.add_test(
+		"testNumStampsTooBig",
+		&TestNotificationDispatcher::testNumStampsTooBig);
+	dispatcherTest.add_test(
+		"testNumSamplesTooBig",
+		&TestNotificationDispatcher::testNumSamplesTooBig);
+	dispatcherTest.add_test(
+		"testSampleSizeTooBig",
+		&TestNotificationDispatcher::testSampleSizeTooBig);
+	dispatcherTest.add_test(
+		"testEmptyNotification",
+		&TestNotificationDispatcher::testEmptyNotification);
+	failedTests += dispatcherTest.run();
 
 	return failedTests;
 }
